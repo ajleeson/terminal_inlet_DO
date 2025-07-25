@@ -23,9 +23,6 @@ def hypoxic_volume(grid_ds):
 
     years =  ['2014','2015','2016','2017','2018','2019']
 
-    # which  model run to look at?
-    gtagex = 'cas7_t0_x4b' # long hindcast (anthropogenic)
-
     ##############################################################
     ##                      Process data                        ##
     ##############################################################
@@ -37,43 +34,37 @@ def hypoxic_volume(grid_ds):
     lat = grid_ds.lat_rho.values
     plon, plat = pfun.get_plon_plat(lon,lat)
     # make a version of z with nans where masked
+    # this gives us a binary map of land and water cells
     zm = z.copy()
     zm[np.transpose(mask_rho) == 0] = np.nan
     zm[np.transpose(mask_rho) != 0] = -1
 
     # initialize empty dictionaries
-    DO_bot_dict = {} # dictionary with DO_bot values
     hyp_thick_dict = {}
 
+    # For each year, get the vertical thickness of hypoxic cells [m] at every lat/lon location
     for year in years:
-        # add grid_ds to dictionary
-        DOdata_ds = xr.open_dataset(Ldir['LOo'] / 'pugetsound_DO' / 'data' / (year + '_DO_info_' + 'noStraits' + '.nc'))
-        DO_bot = DOdata_ds['DO_bot'].values
+        # add hypoxic thickness to dictionary
+        DOdata_ds = xr.open_dataset('../DATA_terminal_inlet_DO/' + year + 'PugetSound_hypoxic_thickness.nc')
         hyp_thick = DOdata_ds['hyp_thick'].values
         # if not a leap year, add a nan on feb 29 (julian day 60 - 1 because indexing from 0)
         if np.mod(int(year),4) != 0: 
-            DO_bot = np.insert(DO_bot,59,'nan',axis=0)
             hyp_thick = np.insert(hyp_thick,59,'nan',axis=0)
-        DO_bot_dict[year] = DO_bot
         hyp_thick_dict[year] = hyp_thick
 
-    # calculate average of all of the arrays
-    v_avg = sum(DO_bot_dict.values())/len(DO_bot_dict)
-    # add average to dictionary
-    DO_bot_dict['avg'] = v_avg
-
     # get grid cell area
-    fp = Ldir['LOo'] / 'extract' / gtagex / 'box' / ('pugetsoundDO_2013.01.01_2013.12.31.nc')
-    grid_ds_2013 = xr.open_dataset(fp)
-    DX = (grid_ds_2013.pm.values)**-1
-    DY = (grid_ds_2013.pn.values)**-1
+    ps_gridsize_ds = xr.open_dataset('../DATA_terminal_inlet_DO/PugetSound_gridsizes.nc')
+    DX = (ps_gridsize_ds.pm.values)**-1 # grid cells per meter in x
+    DY = (ps_gridsize_ds.pn.values)**-1 # grid cells per meter in y
     DA = DX*DY*(1/1000)*(1/1000) # get area, but convert from m^2 to km^2
 
     # initialize dictionary for hypoxic volume [km3]
     hyp_vol = {}
     for year in years:
-        # get hypoxic thickness
+        # get hypoxic thickness in km
         hyp_thick = hyp_thick_dict[year]/1000 # [km]
+        # multiply vertical hypoxic thickness by area of grid cell,
+        # and sum over Puget Sound to get hypoxic volume
         hyp_vol_timeseries = np.sum(hyp_thick * DA, axis=(1, 2)) # km^3
         hyp_vol[year] = hyp_vol_timeseries
 
@@ -105,8 +96,7 @@ def hypoxic_volume(grid_ds):
     pfun.dar(ax0)
     # Create a Rectangle patch to omit Straits
     # get lat and lon
-    fp = Ldir['LOo'] / 'extract' / gtagex / 'box' / ('pugetsoundDO_2013.01.01_2013.12.31.nc')
-    PSbox_ds = xr.open_dataset(fp)
+    PSbox_ds = xr.open_dataset('../DATA_terminal_inlet_DO/PugetSound_gridsizes.nc')
     lons = PSbox_ds.coords['lon_rho'].values
     lats = PSbox_ds.coords['lat_rho'].values
     lon = lons[0,:]
