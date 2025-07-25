@@ -55,19 +55,19 @@ print('Reading data...')
 # (Thomson & Emery, 2014)
 
 # terminal inlet deep layer values
-with open('../data/deeplay_dict.pickle', 'rb') as handle:
+with open('../DATA_terminal_inlet_DO/deeplay_dict.pickle', 'rb') as handle:
     deeplay_dict = pickle.load(handle)
 
 # terminal inlet shallow layer values
-with open('../data/shallowlay_dict.pickle', 'rb') as handle:
+with open('../DATA_terminal_inlet_DO/shallowlay_dict.pickle', 'rb') as handle:
     shallowlay_dict = pickle.load(handle)
 
 # terminal inlet dimensions
-with open('../data/dimensions_dict.pickle', 'rb') as handle:
+with open('../DATA_terminal_inlet_DO/dimensions_dict.pickle', 'rb') as handle:
     dimensions_dict = pickle.load(handle)
 
 # terminal inlet DO concentrations [mg/L]
-with open('../data/DOconcen_dict.pickle', 'rb') as handle:
+with open('../DATA_terminal_inlet_DO/DOconcen_dict.pickle', 'rb') as handle:
     DOconcen_dict = pickle.load(handle)
 
 # get inlet names
@@ -77,7 +77,7 @@ inlets = list(deeplay_dict.keys())
 hyp_inlets = ['penn','case','holmes','portsusan','lynchcove','dabob']
 
 # LiveOcean grid (cas7 version)
-grid_ds = xr.open_dataset('../data/LO_cas7_grid.nc')
+grid_ds = xr.open_dataset('../DATA_terminal_inlet_DO/LO_cas7_grid.nc')
 
 ##########################################################
 ##                 Key values                           ##
