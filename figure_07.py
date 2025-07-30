@@ -6,17 +6,11 @@ import matplotlib.dates as mdates
 import numpy as np
 import xarray as xr
 import matplotlib.patches as patches
-
 import pandas as pd
 import cmocean
 import matplotlib.pylab as plt
 
-
-from lo_tools import Lfun
-from lo_tools import plotting_functions as pfun
-
-
-Ldir = Lfun.Lstart()
+import helper_functions
 
 
 def hypoxic_volume(grid_ds):
@@ -32,7 +26,7 @@ def hypoxic_volume(grid_ds):
     mask_rho = np.transpose(grid_ds.mask_rho.values)
     lon = grid_ds.lon_rho.values
     lat = grid_ds.lat_rho.values
-    plon, plat = pfun.get_plon_plat(lon,lat)
+    plon, plat = helper_functions.get_plon_plat(lon,lat)
     # make a version of z with nans where masked
     # this gives us a binary map of land and water cells
     zm = z.copy()
@@ -82,9 +76,7 @@ def hypoxic_volume(grid_ds):
     colors = ['#62B6CB','#A8C256','#96031A','#957FEF','#F9627D','#476ad1','darkorange']
 
     # initialize figure
-    plt.close('all)')
-    pfun.start_plot(figsize=(12,5.5))
-    f, (ax0, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 4]})
+    fig, (ax0, ax1) = plt.subplots(1,2,figsize = (12,5.5),gridspec_kw={'width_ratios': [1, 4]})
 
     # format figure
     ax0.set_xlim([xmin,xmax])
@@ -93,7 +85,7 @@ def hypoxic_volume(grid_ds):
     ax0.set_xlabel('Longitude', fontsize=12)
     ax0.tick_params(axis='both', labelsize=12)
     ax0.pcolormesh(plon, plat, zm, vmin=-8, vmax=0, cmap=plt.get_cmap(cmocean.cm.ice))
-    pfun.dar(ax0)
+    helper_functions.dar(ax0)
     # Create a Rectangle patch to omit Straits
     # get lat and lon
     PSbox_ds = xr.open_dataset('../DATA_terminal_inlet_DO/PugetSound_gridsizes.nc')
@@ -129,7 +121,7 @@ def hypoxic_volume(grid_ds):
     startdate = '2020.01.01'
     enddate = '2020.12.31'
     dates = pd.date_range(start= startdate, end= enddate, freq= '1d')
-    dates_local = [pfun.get_dt_local(x) for x in dates]
+    dates_local = [helper_functions.get_dt_local(x) for x in dates]
 
     # plot timeseries
     for i,year in enumerate(years):

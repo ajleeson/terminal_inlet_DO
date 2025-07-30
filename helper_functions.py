@@ -74,3 +74,39 @@ def get_dt_local(dt, tzl='US/Pacific'):
     dt_utc = dt.replace(tzinfo=tz_utc)
     dt_local = dt_utc.astimezone(tz_local)
     return dt_local
+
+def get_plon_plat(lon, lat):
+    """
+    This takes the 2-D lon and lat grids (ndarrays) and returns extended
+    "psi" grids that are suitable for plotting using pcolormesh
+    for any field on the original grid.
+    NOTE: It checks to make sure the original grid is plaid.
+    
+    You would pass it G['lon_rho'] and G['lat_rho'], for
+    a field on the rho grid.
+    """
+    # input checking
+    Lon = lon[0,:]
+    Lat = lat[:,0]
+    if (Lon - lon[-1,:]).sum() != 0:
+        print('Error from get_plon_plat: lon grid not plaid')
+        sys.exit()
+    if (Lat - lat[:,-1]).sum() != 0:
+        print('Error from get_plon_plat: lat grid not plaid')
+        sys.exit()
+    plon = np.ones(len(Lon) + 1)
+    plat = np.ones(len(Lat) + 1)
+    dx2 = np.diff(Lon)/2
+    dy2 = np.diff(Lat)/2
+    Plon = np.concatenate(((Lon[0]-dx2[0]).reshape((1,)), Lon[:-1]+dx2, (Lon[-1]+dx2[-1]).reshape((1,))))
+    Plat = np.concatenate(((Lat[0]-dy2[0]).reshape((1,)), Lat[:-1]+dy2, (Lat[-1]+dy2[-1]).reshape((1,))))
+    plon, plat = np.meshgrid(Plon, Plat)
+    return plon, plat
+
+def dar(ax):
+    """
+    Fixes the plot aspect ratio to be locally Cartesian.
+    """
+    yl = ax.get_ylim()
+    yav = (yl[0] + yl[1])/2
+    ax.set_aspect(1/np.cos(np.pi*yav/180))
