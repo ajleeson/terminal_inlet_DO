@@ -3,7 +3,7 @@ Main script to process data and generate figures for
 studying drivers of low oxygen in Puget Sound terminal inlets.
 
 Aurora Leeson
-July 2025
+August 2025
 """
 
 import pandas as pd
@@ -16,6 +16,7 @@ import helper_functions
 import get_monthly_means
 import budget_error
 import figure_07
+import figure_08
 import figure_09
 import figure_10
 import figure_11
@@ -28,17 +29,12 @@ reload(helper_functions)
 reload(get_monthly_means)
 reload(budget_error)
 reload(figure_07)
+reload(figure_08)
 reload(figure_09)
 reload(figure_10)
 reload(figure_11)
 reload(figure_12)
 reload(multiple_regression)
-
-# # DELETE THESE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# import QinDOin_correl_consumption
-# import TEST1LAYER_net_decrease_boxplots
-# import d_dt_DO_timeseries
-# import TEST_STATISTICS
 
 plt.close('all')
 
@@ -48,7 +44,26 @@ plt.close('all')
 
 print('Reading data...')
 
-# NOTE: data in these deeplay_dict and shallowlay_dict
+
+# LiveOcean grid (cas7 version)
+grid_ds = xr.open_dataset('../DATA_terminal_inlet_DO/LO_cas7_grid.nc')
+
+# Puget Sound sub-domain within LiveOcean
+PSbox_ds = xr.open_dataset('../DATA_terminal_inlet_DO/PugetSound_gridsizes.nc')
+
+# Puget Sound hypoxic volume time series
+with open('../DATA_terminal_inlet_DO/PS_hypoxic_volume_dict.pickle', 'rb') as handle:
+    hyp_vol_dict = pickle.load(handle)
+
+# Number of days that each grid cell experiences bottom hypoxia per year
+with open('../DATA_terminal_inlet_DO/days_with_bottom_hypoxia_dict.pickle', 'rb') as handle:
+    hyp_days_dict = pickle.load(handle)
+
+# Mean bottom DO concentration of each grid cell during hypoxic season
+with open('../DATA_terminal_inlet_DO/mean_hypoxic_season_bottom_DO_dict.pickle', 'rb') as handle:
+    hyp_seas_DO_dict = pickle.load(handle)
+
+# NOTE: data in deeplay_dict and shallowlay_dict
 # are tidally-averaged daily time series
 # in units of kmol O2 per second
 # Values have been passed through a 71-hour lowpass Godin filter
@@ -75,9 +90,6 @@ inlets = list(deeplay_dict.keys())
 
 # list of hypoxic inlets
 hyp_inlets = ['penn','case','holmes','portsusan','lynchcove','dabob']
-
-# LiveOcean grid (cas7 version)
-grid_ds = xr.open_dataset('../DATA_terminal_inlet_DO/LO_cas7_grid.nc')
 
 ##########################################################
 ##                 Key values                           ##
@@ -130,12 +142,6 @@ df_MONTHLYmean_perchyp] = get_monthly_means.get_monthly_means(deeplay_dict,DOcon
                                                                 dimensions_dict,inlets)
 
 ##########################################################
-##             Hypoxic volume time series               ## 
-##########################################################
-
-figure_07.hypoxic_volume(grid_ds)
-
-##########################################################
 ##               Deep Budget Error Analysis             ##
 ##########################################################
 
@@ -145,6 +151,30 @@ budget_error.budget_error(inlets,shallowlay_dict,deeplay_dict,
                           dimensions_dict,kmolm3sec_to_mgLday)
 
 ##########################################################
+##             Hypoxic volume time series               ## 
+##########################################################
+
+figure_07.hypoxic_volume(grid_ds,hyp_vol_dict,PSbox_ds)
+
+##########################################################
+##              Map of Puget Sound hypoxia              ## 
+##########################################################
+
+figure_08.pugetsound_hyp_map(grid_ds,PSbox_ds,hyp_days_dict,
+                             hyp_seas_DO_dict)
+
+##########################################################
+##   Mean DOdeep vs % hyp vol and  DOdeep time series   ## 
+##########################################################
+
+figure_09.dodeep_hypvol_timeseries(MONTHLYmean_DOdeep,
+                                    MONTHLYmean_perchyp,
+                                    DOconcen_dict,
+                                    dates_local_daily,
+                                    dates_local_hrly,
+                                    inlets,minday,maxday)
+
+##########################################################
 ##                  Budget Bar Charts                   ##
 ##########################################################
 
@@ -152,35 +182,24 @@ figure_10.budget_barchart(inlets,shallowlay_dict,deeplay_dict,
                     dates_local_hrly,dates_local_daily,hyp_inlets,
                     minday,maxday,kmolm3sec_to_mgLday)
 
-#########################################################
-##Plot monthly mean DOdeep, DOin, Tflush, and % hyp vol##
-#########################################################
-        
-figure_12.plot_monthly_means(MONTHLYmean_DOdeep,
-                                        MONTHLYmean_DOin,
-                                        MONTHLYmean_Tflush,
-                                        MONTHLYmean_perchyp,
-                                        df_MONTHLYmean_DOdeep,
-                                        df_MONTHLYmean_DOin,
-                                        df_MONTHLYmean_Tflush)
-
-##########################################################
-##   Mean DOdeep vs % hyp vol and  DOdeep time series   ## 
-##########################################################
-
-figure_09.dodeep_hypvol_timeseries(MONTHLYmean_DOdeep,
-                                                MONTHLYmean_perchyp,
-                                                DOconcen_dict,
-                                                dates_local_daily,
-                                                dates_local_hrly,
-                                                inlets,minday,maxday)
-
 ##########################################################
 ##        Net decrease (Jun 15 to Aug 15) boxplots      ## 
 ##########################################################
 
 figure_11.net_decrease_boxplots(dimensions_dict,deeplay_dict,
-                                            minday,maxday)
+                                minday,maxday)
+
+#########################################################
+##Plot monthly mean DOdeep, DOin, Tflush, and % hyp vol##
+#########################################################
+        
+figure_12.plot_monthly_means(MONTHLYmean_DOdeep,
+                            MONTHLYmean_DOin,
+                            MONTHLYmean_Tflush,
+                            MONTHLYmean_perchyp,
+                            df_MONTHLYmean_DOdeep,
+                            df_MONTHLYmean_DOin,
+                            df_MONTHLYmean_Tflush)
 
 ##########################################################
 ##                 Multiple regression                  ## 
@@ -189,35 +208,3 @@ figure_11.net_decrease_boxplots(dimensions_dict,deeplay_dict,
 multiple_regression.multiple_regression(MONTHLYmean_DOdeep,
                                         MONTHLYmean_DOin,
                                         MONTHLYmean_Tflush)
-
-
-
-
-
-
-
-# ##########################################################
-# ##   TESTING WHY IS D/DT(DO) THE SAME IN ALL INLETS?    ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# ##########################################################
-# # DELETE THESE
-
-# TEST1LAYER_net_decrease_boxplots.net_decrease_boxplots(dimensions_dict,deeplay_dict,
-#                                                         shallowlay_dict,minday,maxday)
-
-
-# d_dt_DO_timeseries.d_dt_DO_timeseries(DOconcen_dict,
-#                         dates_local_daily,
-#                         dates_local_hrly,
-#                         inlets,minday,maxday,
-#                         dimensions_dict,deeplay_dict,
-#                         shallowlay_dict,)
-
-# TEST_STATISTICS.test_statistics(inlets,shallowlay_dict,deeplay_dict,
-#                     dates_local_hrly,dates_local_daily,hyp_inlets,
-#                     minday,maxday,kmolm3sec_to_mgLday)
-
-# ########################################################
-# # Correlation of Cons & QinDOin (mid-jun to mid-aug) ##
-# ########################################################
-
-# QinDOin_correl_consumption.correl(inlets,deeplay_dict,minday,maxday,kmolm3sec_to_mgLday)

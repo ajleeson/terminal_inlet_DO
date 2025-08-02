@@ -13,12 +13,12 @@ import matplotlib.pylab as plt
 import helper_functions
 
 
-def hypoxic_volume(grid_ds):
+def hypoxic_volume(grid_ds,hyp_vol_dict,PSbox_ds):
 
     years =  ['2014','2015','2016','2017','2018','2019']
 
     ##############################################################
-    ##                      Process data                        ##
+    ##       Get masked land / water map of Puget Sound         ##
     ##############################################################
 
     # get the grid data
@@ -32,35 +32,6 @@ def hypoxic_volume(grid_ds):
     zm = z.copy()
     zm[np.transpose(mask_rho) == 0] = np.nan
     zm[np.transpose(mask_rho) != 0] = -1
-
-    # initialize empty dictionaries
-    hyp_thick_dict = {}
-
-    # For each year, get the vertical thickness of hypoxic cells [m] at every lat/lon location
-    for year in years:
-        # add hypoxic thickness to dictionary
-        DOdata_ds = xr.open_dataset('../DATA_terminal_inlet_DO/' + year + 'PugetSound_hypoxic_thickness.nc')
-        hyp_thick = DOdata_ds['hyp_thick'].values
-        # if not a leap year, add a nan on feb 29 (julian day 60 - 1 because indexing from 0)
-        if np.mod(int(year),4) != 0: 
-            hyp_thick = np.insert(hyp_thick,59,'nan',axis=0)
-        hyp_thick_dict[year] = hyp_thick
-
-    # get grid cell area
-    ps_gridsize_ds = xr.open_dataset('../DATA_terminal_inlet_DO/PugetSound_gridsizes.nc')
-    DX = (ps_gridsize_ds.pm.values)**-1 # grid cells per meter in x
-    DY = (ps_gridsize_ds.pn.values)**-1 # grid cells per meter in y
-    DA = DX*DY*(1/1000)*(1/1000) # get area, but convert from m^2 to km^2
-
-    # initialize dictionary for hypoxic volume [km3]
-    hyp_vol = {}
-    for year in years:
-        # get hypoxic thickness in km
-        hyp_thick = hyp_thick_dict[year]/1000 # [km]
-        # multiply vertical hypoxic thickness by area of grid cell,
-        # and sum over Puget Sound to get hypoxic volume
-        hyp_vol_timeseries = np.sum(hyp_thick * DA, axis=(1, 2)) # km^3
-        hyp_vol[year] = hyp_vol_timeseries
 
     ##############################################################
     ##             Plot hypoxic volume time series              ##
@@ -88,7 +59,6 @@ def hypoxic_volume(grid_ds):
     helper_functions.dar(ax0)
     # Create a Rectangle patch to omit Straits
     # get lat and lon
-    PSbox_ds = xr.open_dataset('../DATA_terminal_inlet_DO/PugetSound_gridsizes.nc')
     lons = PSbox_ds.coords['lon_rho'].values
     lats = PSbox_ds.coords['lat_rho'].values
     lon = lons[0,:]
@@ -126,18 +96,18 @@ def hypoxic_volume(grid_ds):
     # plot timeseries
     for i,year in enumerate(years):
         if year == '2017':
-            ax1.plot(dates_local,hyp_vol[year],color='white',
+            ax1.plot(dates_local,hyp_vol_dict[year],color='white',
                     linewidth=4,zorder=4)
-            ax1.plot(dates_local,hyp_vol[year],color='black',
+            ax1.plot(dates_local,hyp_vol_dict[year],color='black',
                     linewidth=3.5,label=year,zorder=4)
         else:
-            ax1.plot(dates_local,hyp_vol[year],color='white',
+            ax1.plot(dates_local,hyp_vol_dict[year],color='white',
                     linewidth=2.5)
-            ax1.plot(dates_local,hyp_vol[year],color=colors[i],
+            ax1.plot(dates_local,hyp_vol_dict[year],color=colors[i],
                     linewidth=2,label=year)
 
     # get median hypoxic volume
-    med_vol = np.nanmedian(list(hyp_vol.values()), axis=0)
+    med_vol = np.nanmedian(list(hyp_vol_dict.values()), axis=0)
     ax1.plot(dates_local,med_vol,color='k',
             linestyle='--',linewidth=2,label='median')
 
