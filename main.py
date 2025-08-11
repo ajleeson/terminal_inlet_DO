@@ -15,6 +15,7 @@ import pickle
 import helper_functions
 import get_monthly_means
 import budget_error
+import figure_01
 import figure_07
 import figure_08
 import figure_09
@@ -28,6 +29,7 @@ from importlib import reload
 reload(helper_functions)
 reload(get_monthly_means)
 reload(budget_error)
+reload(figure_01)
 reload(figure_07)
 reload(figure_08)
 reload(figure_09)
@@ -149,6 +151,12 @@ df_MONTHLYmean_perchyp] = get_monthly_means.get_monthly_means(deeplay_dict,DOcon
 # expressed as a % of QinDOin and biological consumption
 budget_error.budget_error(inlets,shallowlay_dict,deeplay_dict,
                           dimensions_dict,kmolm3sec_to_mgLday)
+
+##########################################################
+##                   Bathymetry map                     ## 
+##########################################################
+
+figure_01.model_bathy(grid_ds)
 
 ##########################################################
 ##             Hypoxic volume time series               ## 
